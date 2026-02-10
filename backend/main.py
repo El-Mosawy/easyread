@@ -1,14 +1,25 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware  # NEW
 
 # Create app object. Can be used to define endpoints (aka routes) later.
 app = FastAPI(title="EasyRead API", version="0.1.0") 
 
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 class SimplifyRequest(BaseModel):
     text: str
     level: str = "simple"  # later: simple / very_simple
-
 
 # Below we register API endpoints so they can be called by frontend
 # e.g. someone hits http://localhost:8000/health in their browser, this function run
