@@ -1,12 +1,12 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from fastapi.middleware.cors import CORSMiddleware  # NEW
+from fastapi.middleware.cors import CORSMiddleware  # So react app hosted on different origin can call API without issues
 
 # Create app object. Can be used to define endpoints (aka routes) later.
 app = FastAPI(title="EasyRead API", version="0.1.0") 
 
 
-app.add_middleware(
+app.add_middleware( # middleware to allow CORS so frontend can call API without issues.
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
