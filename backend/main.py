@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware  # So react app hosted on different origin can call API without issues
+from backend.services.simplifier import simplify_text
 
 # Create app object. Can be used to define endpoints (aka routes) later.
 app = FastAPI(title="EasyRead API", version="0.1.0") 
@@ -28,13 +29,23 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/simplify") # API endpoint to simplify text
-def simplify(req: SimplifyRequest): # telling FastAPI to match simplifyRequest model
-    # Stub for now (so frontend can connect immediately later).
+#@app.post("/simplify") # API endpoint to simplify text
+#def simplify(req: SimplifyRequest): # telling FastAPI to match simplifyRequest model
+#    # Stub for now (so frontend can connect immediately later).
+#    return {
+#        "original": req.text, # returns a dict -> becomes JSON response auto
+#        "simplified": f"[{req.level}] {req.text}", # f-string formatting
+#       "notes": ["Stub response — real simplifier comes next."] # just a message
+#    }
+
+# Now we implement the real simplifier, which calls the simplify_text function we defined in services/simplifier.py.
+@app.post("/simplify")
+def simplify(req: SimplifyRequest):
+    result = simplify_text(req.text, req.level)
     return {
-        "original": req.text, # returns a dict -> becomes JSON response auto
-        "simplified": f"[{req.level}] {req.text}", # f-string formatting
-        "notes": ["Stub response — real simplifier comes next."] # just a message
+        "original": req.text,
+        "simplified": result["simplified"],
+        "meta": result["meta"],
     }
 
 #“I defined a FastAPI app, added a Pydantic request model for validation, 
