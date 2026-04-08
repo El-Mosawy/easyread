@@ -2,6 +2,9 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware  # So react app hosted on different origin can call API without issues
 from backend.services.simplifier import simplify_text
+from fastapi import FastAPI, UploadFile, File
+from pypdf import PdfReader
+import io
 
 # Create app object. Can be used to define endpoints (aka routes) later.
 app = FastAPI(title="EasyRead API", version="0.1.0") 
@@ -44,6 +47,34 @@ def simplify(req: SimplifyRequest):
     result = simplify_text(req.text, req.level)
     return {
         "original": req.text,
+        "simplified": result["simplified"],
+        "meta": result["meta"],
+    }
+
+# This is the endpoint to upload a PDF file. We read the file, extract text using PyPDF, then call the same simplifier function to simplify the extracted text. 
+# We return the original extracted text and the simplified version, along with some metadata.
+@app.post("/upload")
+async def upload(file: UploadFile = File(...), level: str = "simple"):
+    # Basic checks
+    if file.content_type not in ["application/pdf"]:
+        return {"error": "Please upload a PDF file."}
+
+    # Read bytes from uploaded file
+    data = await file.read()
+
+    # Extract text from the PDF
+    reader = PdfReader(io.BytesIO(data))
+    pages_text = []
+    for page in reader.pages:
+        pages_text.append(page.extract_text() or "")
+    text = "\n".join(pages_text).strip()
+
+    # Simplify extracted text
+    result = simplify_text(text, level)
+
+    return {
+        "filename": file.filename,
+        "original": text,
         "simplified": result["simplified"],
         "meta": result["meta"],
     }
