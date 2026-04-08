@@ -3,17 +3,41 @@ from typing import List, Tuple, Dict
 
 # Common “official” phrases -> simpler equivalents (I think these are the most common phrases mentioned in UK letters)
 PHRASE_REPLACEMENTS: List[Tuple[str, str]] = [
+    # Very common “official letter” openers
     (r"\bplease be advised that\b", "please note"),
-    (r"\bwith regard to\b", "about"),
+    (r"\bwe regret to inform you that\b", "we’re sorry, but"),
+    (r"\bwe regret to inform you\b", "we’re sorry, but"),
+
+    # Common legal/official patterns
     (r"\bin accordance with\b", "under"),
-    (r"\bas per\b", "as"),
+    (r"\bfor the avoidance of doubt\b", "to be clear"),
+    (r"\bwith regard to\b", "about"),
+    (r"\bin relation to\b", "about"),
+    (r"\bin the event that\b", "if"),
     (r"\bprior to\b", "before"),
     (r"\bsubsequent to\b", "after"),
+    (r"\bwith immediate effect\b", "from now"),
+
+    # “You must” patterns
+    (r"\byou are required to\b", "you must"),
+    (r"\bit is your responsibility to\b", "you must"),
+    (r"\byou are requested to\b", "please"),
+    (r"\byou are advised to\b", "you should"),
+
+    # Consequences
+    (r"\bfailure to comply may result in\b", "if you don’t do this, there may be"),
+    (r"\bfailure to comply will result in\b", "if you don’t do this, there will be"),
+
+    # Fluffy closings
+    (r"\bplease do not hesitate to contact us\b", "you can contact us"),
     (r"\bat your earliest convenience\b", "as soon as you can"),
-    (r"\bcommence\b", "start"),
-    (r"\bterminate\b", "end"),
+
+    # Verbs
     (r"\bassist\b", "help"),
     (r"\butili[sz]e\b", "use"),
+    (r"\bcommence\b", "start"),
+    (r"\bterminate\b", "end"),
+    (r"\badditional\b", "extra"),
 ]
 
 # Common words -> simpler equivalents (also based on UK letters, but more general than phrases)
@@ -156,6 +180,21 @@ def _sentence_case(text: str) -> str:
     s = re.sub(r"\s+([,.!?])", r"\1", s)
     return s
 
+def _very_simple_format(text: str) -> str:
+    """
+    Make the output easier to scan:
+    - break into short lines
+    - add bullets when its a paragraph
+    """
+    # Split into sentences-ish chunks (already mostly split)
+    chunks = [c.strip() for c in re.split(r"(?<=[.!?])\s+", text) if c.strip()]
+    if len(chunks) <= 1:
+        return text
+
+    # Convert to bullets
+    lines = [f"- {c}" for c in chunks]
+    return "\n".join(lines)
+
 # Main function that calls the helper functions. Chooses aggressiveness based on level. Returns simplified text and metadata (lengths, level)
 # The metadata can be used to show stats to the user, or for debugging/improving the simplifier later.
 def simplify_text(text: str, level: str = "simple") -> Dict[str, object]:
@@ -178,9 +217,13 @@ def simplify_text(text: str, level: str = "simple") -> Dict[str, object]:
     out = _bulletise_if_listy(out)
     out = _sentence_case(out)
 
+    if level == "very_simple":
+        out = _very_simple_format(out)
+
     meta = {
         "level": level,
         "original_length": len(original),
         "simplified_length": len(out),
     }
     return {"simplified": out, "meta": meta}
+
