@@ -47,21 +47,44 @@ export default function App() {
     }
   }
 
-  function handleFileUpload(file) { // validates the uploaded file, reads it as text, and puts the content in the input textarea
-    setError("");
-    if (!file) return;
+  // FormnData is how browsers send files.
+async function handleFileUpload(file) {
+  setError("");
+  setSimplified("");
+  setNotes([]);
 
-    // For now: accept .txt to prove upload → simplify → download flow.
-    if (!file.name.toLowerCase().endsWith(".txt")) {
-      setError("For now, upload a .txt file. PDF upload comes next step.");
-      return;
+  if (!file) return;
+
+  if (!file.name.toLowerCase().endsWith(".pdf")) {
+    setError("Please upload a PDF file.");
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const form = new FormData();
+    form.append("file", file);
+
+    // Send level as a query param
+    const res = await fetch(`${API_BASE}/upload?level=${encodeURIComponent(level)}`, {
+      method: "POST",
+      body: form,
+    });
+
+    if (!res.ok) {
+      const msg = await res.text();
+      throw new Error(`API error: ${res.status} ${msg}`);
     }
 
-    const reader = new FileReader();
-    reader.onload = () => setText(String(reader.result || ""));
-    reader.onerror = () => setError("Could not read that file.");
-    reader.readAsText(file);
+    const data = await res.json();
+    setText(data.original || "");
+    setSimplified(data.simplified || "");
+  } catch (e) {
+    setError(e.message || "Upload failed.");
+  } finally {
+    setLoading(false);
   }
+}
 
   function downloadSimplified() { // creates a downloadable .txt file from the simplified text and triggers a download in the browser
     const blob = new Blob([simplified], { type: "text/plain;charset=utf-8" });
@@ -108,10 +131,10 @@ export default function App() {
         </label>
 
         <label className="upload">
-          Upload (.txt for now)
+          Upload (Upload a PDF)
           <input
             type="file"
-            accept=".txt"
+            accept=".pdf"
             onChange={(e) => handleFileUpload(e.target.files?.[0])}
           />
         </label>
@@ -133,7 +156,7 @@ export default function App() {
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Paste text here (or upload a .txt file)…"
+            placeholder="Paste text here (or upload a PDF)…"
           />
         </section>
 
